@@ -1,11 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-# Title and greeting
-st.title("🚢 LGLDubaiBot")
-st.markdown("Welcome! Kindly query about the vessel.")
-
-# Load the vessel schedule data
+# Sample vessel schedule data
 data = [
     ["LIBERTY PEACE", 75, "Shuaiba, Kuwait", None, "14:00 07/19/25", "18:00 07/20/25", "Pending Port Call", "possible delays for cargo documentation"],
     ["LIBERTY PEACE", 75, "Hamad, Qatar", None, "19:13 07/21/25", "19:13 07/22/25", "Completed OPS", None],
@@ -28,41 +24,41 @@ data = [
 columns = ["Vessel", "Voyage", "Port", "Terminal", "Date of Arrival", "Date of Departure", "Status", "Notes"]
 df = pd.DataFrame(data, columns=columns)
 
-# Step 1: Select Vessel
+# Streamlit app
+st.set_page_config(page_title="LGLDubaiBot", layout="centered")
+st.title("👋 Welcome to LGLDubaiBot")
+st.markdown("Please ask me anything about vessel schedules.")
+
+# Step 1: Vessel selection
 vessels = sorted(df["Vessel"].unique())
 selected_vessel = st.selectbox("Select a vessel:", vessels)
 
 if selected_vessel:
-    # Step 2: Select Voyage
     voyages = sorted(df[df["Vessel"] == selected_vessel]["Voyage"].unique())
     selected_voyage = st.selectbox("Select a voyage:", voyages)
 
     if selected_voyage:
-        # Step 3: Select Port
         ports = df[(df["Vessel"] == selected_vessel) & (df["Voyage"] == selected_voyage)]["Port"].unique()
         selected_port = st.selectbox("Select a port:", ports)
 
         if selected_port:
-            # Display port call details
-            result = df[
-                (df["Vessel"] == selected_vessel) &
-                (df["Voyage"] == selected_voyage) &
-                (df["Port"] == selected_port)
-            ]
+            result = df[(df["Vessel"] == selected_vessel) &
+                        (df["Voyage"] == selected_voyage) &
+                        (df["Port"] == selected_port)]
 
-            if not result.empty:
-                st.subheader("📋 Port Call Details")
-                for _, row in result.iterrows():
-                    st.markdown(f"""
-                    - **Vessel**: {row['Vessel']}
-                    - **Voyage**: {row['Voyage']}
-                    - **Port**: {row['Port']}
-                    - **Terminal**: {row['Terminal'] or 'N/A'}
-                    - **Arrival**: {row['Date of Arrival']}
-                    - **Departure**: {row['Date of Departure']}
-                    - **Status**: {row['Status']}
-                    - **Notes**: {row['Notes'] or 'N/A'}
-                    """)
-            else:
-                st.warning("No matching port call details found.")
+            st.subheader("📍 Port Call Details")
+            for _, row in result.iterrows():
+                st.markdown(f"""
+                - **Vessel**: {row['Vessel']}
+                - **Voyage**: {row['Voyage']}
+                - **Port**: {row['Port']}
+                - **Terminal**: {row['Terminal'] or 'N/A'}
+                - **Arrival**: {row['Date of Arrival']}
+                - **Departure**: {row['Date of Departure']}
+                - **Status**: {row['Status']}
+                - **Notes**: {row['Notes'] or 'None'}
+                """)
+
+            st.success("✅ Let me know if there's anything else I can help you with!")
+
 
