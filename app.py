@@ -26,7 +26,7 @@ st.title("🛳️ LGLDubaiBot")
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).markdown(msg["content"])
 
-# Reset function
+# Handle conversation stages
 def reset_bot():
     st.session_state.stage = "vessel"
     st.session_state.vessel = None
@@ -34,7 +34,6 @@ def reset_bot():
     st.session_state.port = None
     st.session_state.messages = []
 
-# Stage: Vessel selection
 if st.session_state.stage == "vessel":
     prompt = "Hi! 👋 Welcome to LGLDubaiBot. Please enter a vessel name:"
     st.chat_message("assistant").markdown(prompt)
@@ -42,19 +41,14 @@ if st.session_state.stage == "vessel":
     if vessel_input:
         st.session_state.messages.append({"role": "user", "content": vessel_input})
         vessels = df["Vessel"].unique()
-        matches = [v for v in vessels if vessel_input.strip().lower() in v.lower()]
+        matches = [v for v in vessels if vessel_input.strip().upper() in v.upper()]
         if matches:
-            st.session_state.messages.append({"role": "assistant", "content": f"Found these vessels matching **{vessel_input}**. Please select one:"})
-            for match in matches:
-                if st.button(match):
-                    st.session_state.vessel = match
-                    st.session_state.stage = "voyage"
-                    st.session_state.messages.append({"role": "assistant", "content": f"Great! You selected **{match}**. Please select a voyage:"})
-                    st.rerun()
+            st.session_state.vessel = matches[0]
+            st.session_state.stage = "voyage"
+            st.session_state.messages.append({"role": "assistant", "content": f"Great! I found **{matches[0]}**. Please select a voyage:"})
         else:
             st.session_state.messages.append({"role": "assistant", "content": "Sorry, I couldn't find that vessel. Please try again."})
 
-# Stage: Voyage selection
 elif st.session_state.stage == "voyage":
     voyages = df[df["Vessel"] == st.session_state.vessel]["Voyage"].unique()
     for v in voyages:
@@ -64,7 +58,6 @@ elif st.session_state.stage == "voyage":
             st.session_state.messages.append({"role": "assistant", "content": f"You selected **Voyage {v}**. Now choose a port:"})
             st.rerun()
 
-# Stage: Port selection
 elif st.session_state.stage == "port":
     ports = df[(df["Vessel"] == st.session_state.vessel) & (df["Voyage"] == st.session_state.voyage)]["Port"].unique()
     for p in ports:
@@ -74,7 +67,6 @@ elif st.session_state.stage == "port":
             st.session_state.messages.append({"role": "assistant", "content": f"You selected **{p}**. Here are the port call details:"})
             st.rerun()
 
-# Stage: Show details
 elif st.session_state.stage == "details":
     row = df[(df["Vessel"] == st.session_state.vessel) &
              (df["Voyage"] == st.session_state.voyage) &
