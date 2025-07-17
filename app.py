@@ -1,8 +1,11 @@
 import streamlit as st
 import pandas as pd
 
-# Load Excel file
-df = pd.read_excel("vessel_schedule.xlsx", engine="openpyxl")
+# Load Excel file from GitHub
+df = pd.read_excel(
+    "https://raw.githubusercontent.com/alyody/LGLDubaiBot/main/LGL%20Vessel%20Schedule.xlsx",
+    engine="openpyxl"
+)
 
 # Standardize date formats
 df["Date of Arrival"] = pd.to_datetime(df["Date of Arrival"], errors='coerce')
@@ -101,4 +104,3 @@ elif st.session_state.stage == "details":
     if st.button("🔁 Ask another question"):
         reset_bot()
         st.rerun()
-
