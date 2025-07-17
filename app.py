@@ -41,7 +41,7 @@ if st.session_state.stage == "vessel":
     if vessel_input:
         st.session_state.messages.append({"role": "user", "content": vessel_input})
         vessels = df["Vessel"].unique()
-        matches = [v for v in vessels if vessel_input.strip().upper() in v.upper()]
+        matches = [v for v in vessels if vessel_input.strip().lower() in v.lower()]
         if matches:
             st.session_state.vessel = matches[0]
             st.session_state.stage = "voyage"
@@ -50,7 +50,7 @@ if st.session_state.stage == "vessel":
             st.session_state.messages.append({"role": "assistant", "content": "Sorry, I couldn't find that vessel. Please try again."})
 
 elif st.session_state.stage == "voyage":
-    voyages = df[df["Vessel"] == st.session_state.vessel]["Voyage"].unique()
+    voyages = df[df["Vessel"].str.lower() == st.session_state.vessel.lower()]["Voyage"].unique()
     for v in voyages:
         if st.button(f"Voyage {v}"):
             st.session_state.voyage = v
@@ -59,16 +59,20 @@ elif st.session_state.stage == "voyage":
             st.rerun()
 
 elif st.session_state.stage == "port":
-    ports = df[(df["Vessel"] == st.session_state.vessel) & (df["Voyage"] == st.session_state.voyage)]["Port"].unique()
+    ports = df[(df["Vessel"].str.lower() == st.session_state.vessel.lower()) & (df["Voyage"] == st.session_state.voyage)]["Port"].unique()
+    selected_port = None
     for p in ports:
         if st.button(p):
-            st.session_state.port = p
-            st.session_state.stage = "details"
-            st.session_state.messages.append({"role": "assistant", "content": f"You selected **{p}**. Here are the port call details:"})
-            st.rerun()
+            selected_port = p
+            break
+    if selected_port:
+        st.session_state.port = selected_port
+        st.session_state.stage = "details"
+        st.session_state.messages.append({"role": "assistant", "content": f"You selected **{selected_port}**. Here are the port call details:"})
+        st.rerun()
 
 elif st.session_state.stage == "details":
-    row = df[(df["Vessel"] == st.session_state.vessel) &
+    row = df[(df["Vessel"].str.lower() == st.session_state.vessel.lower()) &
              (df["Voyage"] == st.session_state.voyage) &
              (df["Port"] == st.session_state.port)].iloc[0]
     details = f"""
@@ -85,3 +89,4 @@ elif st.session_state.stage == "details":
     if st.button("🔁 Ask another question"):
         reset_bot()
         st.rerun()
+
