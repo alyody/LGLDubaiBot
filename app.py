@@ -1,73 +1,68 @@
+Python 3.12.6 (tags/v3.12.6:a4a2d2b, Sep  6 2024, 20:11:23) [MSC v.1940 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license()" for more information.
 import streamlit as st
 import pandas as pd
-import docx
-import fitz  # PyMuPDF
-import os
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-import tempfile
 
-st.set_page_config(page_title="LGLDubaiBot", layout="wide")
-st.title("🚢 LGLDubaiBot")
-st.markdown("Upload your documents and ask questions. LGLDubaiBot will find the most relevant answers from your files.")
+# Title and greeting
+st.title("🛳️ LGLDubaiBot")
+st.markdown("Welcome! Kindly query about the vessel.")
 
-uploaded_files = st.file_uploader("Upload Excel, PDF, DOCX, or TXT files", type=["xlsx", "xls", "pdf", "docx", "txt"], accept_multiple_files=True)
+# Load the vessel schedule data
+data = [
+    ["LIBERTY PEACE", 75, "Shuaiba, Kuwait", None, "14:00 07/19/25", "18:00 07/20/25", "Pending Port Call", "possible delays for cargo documentation"],
+    ["LIBERTY PEACE", 75, "Hamad, Qatar", None, "19:13 07/21/25", "19:13 07/22/25", "Completed OPS", None],
+    ["LIBERTY PEACE", 75, "Apra Harbor", None, "2025-07-08 11:10", "2025-09-08 04:44", "Pending Port Call", None],
+    ["LIBERTY PEACE", 75, "Shuaiba, Kuwait", None, "08:48 08/25/25", "22:00 08/31/25", "Pending Port Call", None],
+    ["LIBERTY PEACE", 75, "Beaumont, TX", None, "2025-02-10 04:19", "2025-05-10 17:01", "In Operation", None],
+    ["LIBERTY PEACE", 75, "Jacksonville, FL", None, "2025-08-10 20:47", "2025-09-10 20:47", "Pending Port Call", None],
+    ["LIBERTY PEACE", 76, "Charleston - T.C Dock, SC", None, "2025-10-10 08:19", "2025-11-10 01:25", "Pending Port Call", None],
+    ["LIBERTY POWER", 24, "Charleston - T.C Dock, SC", None, "2025-11-07 06:00", "2025-11-07 23:00", "Pending Port Call", None],
+    ["LIBERTY POWER", 24, "Charleston, SC", "Columbus Street Terminal", "2025-12-07 01:30", "2025-12-07 06:30", "Pending Port Call", "BUNKERS ONLY"],
+    ["LIBERTY POWER", 24, "Jacksonville, FL", None, "2025-12-07 19:02", "14:00 07/14/25", "Pending Port Call", None],
+    ["LIBERTY POWER", 24, "Beaumont, TX", None, "12:00 07/18/25", "15:30 07/29/25", "Pending Port Call", "Aviation cargo ALD July 25"],
+    ["LIBERTY POWER", 25, "Shuaiba, Kuwait", None, "20:14 08/30/25", "2025-05-09 04:46", "Pending Port Call", "Cargo availability 9/1"],
+    ["LIBERTY POWER", 25, "Duqm, Oman", None, "2025-07-09 19:12", "2025-12-09 04:46", "Pending Port Call", "Cargo availability 9/8."],
+    ["LIBERTY POWER", 25, "Charleston - T.C Dock, SC", None, "2025-12-10 18:06", "18:06 10/13/25", "Pending Port Call", None],
+    ["LIBERTY POWER", 25, "Jacksonville, FL", None, "06:14 10/14/25", "06:14 10/15/25", "Pending Port Call", None],
+    ["LIBERTY POWER", 25, "Beaumont, TX", None, "08:14 10/18/25", "08:14 10/19/25", "Pending Port Call", None]
+]
 
-documents = []
+columns = ["Vessel", "Voyage", "Port", "Terminal", "Date of Arrival", "Date of Departure", "Status", "Notes"]
+df = pd.DataFrame(data, columns=columns)
 
-def extract_text_from_pdf(file):
-    text = ""
-    with fitz.open(stream=file.read(), filetype="pdf") as doc:
-        for page in doc:
-            text += page.get_text()
-    return text
-
-def extract_text_from_docx(file):
-    doc = docx.Document(file)
-    return "\n".join([para.text for para in doc.paragraphs])
-
-def extract_text_from_txt(file):
-    return file.read().decode("utf-8")
-
-def extract_text_from_excel(file):
-    text = ""
-    try:
-        xls = pd.ExcelFile(file, engine="openpyxl")
-    except:
-        xls = pd.ExcelFile(file, engine="xlrd")
-    for sheet_name in xls.sheet_names:
-        df = xls.parse(sheet_name)
-        text += f"\nSheet: {sheet_name}\n"
-        text += df.to_string(index=False)
-    return text
-
-if uploaded_files:
-    for file in uploaded_files:
-        if file.type == "application/pdf":
-            content = extract_text_from_pdf(file)
-        elif file.type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"]:
-            content = extract_text_from_docx(file)
-        elif file.type in ["text/plain"]:
-            content = extract_text_from_txt(file)
-        elif file.type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"]:
-            content = extract_text_from_excel(file)
-        else:
-            content = ""
-        documents.append(content)
-
-    st.success(f"{len(documents)} document(s) processed successfully.")
-
-    query = st.text_input("Ask a question about your documents:")
-
-    if query and documents:
-        corpus = documents + [query]
-        vectorizer = TfidfVectorizer().fit_transform(corpus)
-        vectors = vectorizer.toarray()
-        cosine_sim = cosine_similarity([vectors[-1]], vectors[:-1])
-        best_match_idx = cosine_sim[0].argmax()
-        best_score = cosine_sim[0][best_match_idx]
-
-        st.subheader("📄 Most Relevant Answer")
-        st.write(documents[best_match_idx])
-        st.caption(f"Similarity Score: {best_score:.2f}")
-
+... # Step 1: Select Vessel
+... vessels = sorted(df["Vessel"].unique())
+... selected_vessel = st.selectbox("Select a vessel:", vessels)
+... 
+... if selected_vessel:
+...     # Step 2: Select Voyage
+...     voyages = sorted(df[df["Vessel"] == selected_vessel]["Voyage"].unique())
+...     selected_voyage = st.selectbox("Select a voyage:", voyages)
+... 
+...     if selected_voyage:
+...         # Step 3: Select Port
+...         ports = df[(df["Vessel"] == selected_vessel) & (df["Voyage"] == selected_voyage)]["Port"].unique()
+...         selected_port = st.selectbox("Select a port:", ports)
+... 
+...         if selected_port:
+...             # Display port call details
+...             result = df[(df["Vessel"] == selected_vessel) &
+...                         (df["Voyage"] == selected_voyage) &
+...                         (df["Port"] == selected_port)]
+... 
+...             if not result.empty:
+...                 st.subheader("📋 Port Call Details")
+...                 for _, row in result.iterrows():
+...                     st.markdown(f"""
+...                     - **Vessel**: {row['Vessel']}
+...                     - **Voyage**: {row['Voyage']}
+...                     - **Port**: {row['Port']}
+...                     - **Terminal**: {row['Terminal'] if pd.notna(row['Terminal']) else 'N/A'}
+...                     - **Arrival**: {row['Date of Arrival']}
+...                     - **Departure**: {row['Date of Departure']}
+...                     - **Status**: {row['Status']}
+...                     - **Notes**: {row['Notes'] if pd.notna(row['Notes']) else 'N/A'}
+...                     """)
+...             else:
+...                 st.warning("No matching port call details found.")
+... 
