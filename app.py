@@ -1,16 +1,8 @@
 import streamlit as st
 import pandas as pd
 
-# Sample vessel schedule data
-data = [
-    {"Vessel": "LIBERTY PEACE", "Voyage": "75", "Port": "Shuaiba, Kuwait", "Terminal": None, "Date of Arrival": "14:00 07/19/25", "Date of Departure": "18:00 07/20/25", "Status": "Pending Port Call", "Notes": "possible delays for cargo documentation"},
-    {"Vessel": "LIBERTY PEACE", "Voyage": "75", "Port": "Hamad, Qatar", "Terminal": None, "Date of Arrival": "19:13 07/21/25", "Date of Departure": "19:13 07/22/25", "Status": "Completed OPS", "Notes": None},
-    {"Vessel": "LIBERTY PEACE", "Voyage": "76", "Port": "Charleston - T.C Dock, SC", "Terminal": None, "Date of Arrival": "2025-10-10 08:19", "Date of Departure": "2025-11-10 01:25", "Status": "Pending Port Call", "Notes": None},
-    {"Vessel": "LIBERTY POWER", "Voyage": "24", "Port": "Charleston, SC", "Terminal": "Columbus Street Terminal", "Date of Arrival": "2025-12-07 01:30", "Date of Departure": "2025-12-07 06:30", "Status": "Pending Port Call", "Notes": "BUNKERS ONLY"},
-    {"Vessel": "LIBERTY POWER", "Voyage": "25", "Port": "Duqm, Oman", "Terminal": None, "Date of Arrival": "2025-07-09 19:12", "Date of Departure": "2025-12-09 04:46", "Status": "Pending Port Call", "Notes": "Cargo availability 9/8."}
-]
-
-df = pd.DataFrame(data)
+# Load Excel file
+df = pd.read_excel("vessel_schedule.xlsx", engine="openpyxl")
 
 # Standardize date formats
 df["Date of Arrival"] = pd.to_datetime(df["Date of Arrival"], errors='coerce')
@@ -44,7 +36,7 @@ if st.session_state.stage == "vessel":
     if vessel_input:
         st.session_state.messages.append({"role": "user", "content": vessel_input})
         vessel_input_clean = vessel_input.strip().lower()
-        vessels = df["Vessel"].unique()
+        vessels = df["Vessel"].dropna().unique()
         matches = [v for v in vessels if vessel_input_clean in v.lower()]
         if matches:
             selected_vessel = matches[0]
@@ -58,7 +50,7 @@ if st.session_state.stage == "vessel":
 
 # Stage 2: Voyage selection
 elif st.session_state.stage == "voyage":
-    voyages = df[df["Vessel"].str.lower() == st.session_state.vessel.lower()]["Voyage"].unique()
+    voyages = df[df["Vessel"].str.lower() == st.session_state.vessel.lower()]["Voyage"].dropna().unique()
     st.chat_message("assistant").markdown("Please select a voyage:")
     for v in voyages:
         if st.button(f"Voyage {v}"):
@@ -72,7 +64,7 @@ elif st.session_state.stage == "port":
     ports = df[
         (df["Vessel"].str.lower() == st.session_state.vessel.lower()) &
         (df["Voyage"] == st.session_state.voyage)
-    ]["Port"].unique()
+    ]["Port"].dropna().unique()
     st.chat_message("assistant").markdown("Please select a port:")
     for p in ports:
         if st.button(f"{p}"):
@@ -109,3 +101,4 @@ elif st.session_state.stage == "details":
     if st.button("🔁 Ask another question"):
         reset_bot()
         st.rerun()
+
