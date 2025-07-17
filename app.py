@@ -1,10 +1,8 @@
-Python 3.12.6 (tags/v3.12.6:a4a2d2b, Sep  6 2024, 20:11:23) [MSC v.1940 64 bit (AMD64)] on win32
-Type "help", "copyright", "credits" or "license()" for more information.
 import streamlit as st
 import pandas as pd
 
 # Title and greeting
-st.title("🛳️ LGLDubaiBot")
+st.title("🚢 LGLDubaiBot")
 st.markdown("Welcome! Kindly query about the vessel.")
 
 # Load the vessel schedule data
@@ -30,39 +28,41 @@ data = [
 columns = ["Vessel", "Voyage", "Port", "Terminal", "Date of Arrival", "Date of Departure", "Status", "Notes"]
 df = pd.DataFrame(data, columns=columns)
 
-... # Step 1: Select Vessel
-... vessels = sorted(df["Vessel"].unique())
-... selected_vessel = st.selectbox("Select a vessel:", vessels)
-... 
-... if selected_vessel:
-...     # Step 2: Select Voyage
-...     voyages = sorted(df[df["Vessel"] == selected_vessel]["Voyage"].unique())
-...     selected_voyage = st.selectbox("Select a voyage:", voyages)
-... 
-...     if selected_voyage:
-...         # Step 3: Select Port
-...         ports = df[(df["Vessel"] == selected_vessel) & (df["Voyage"] == selected_voyage)]["Port"].unique()
-...         selected_port = st.selectbox("Select a port:", ports)
-... 
-...         if selected_port:
-...             # Display port call details
-...             result = df[(df["Vessel"] == selected_vessel) &
-...                         (df["Voyage"] == selected_voyage) &
-...                         (df["Port"] == selected_port)]
-... 
-...             if not result.empty:
-...                 st.subheader("📋 Port Call Details")
-...                 for _, row in result.iterrows():
-...                     st.markdown(f"""
-...                     - **Vessel**: {row['Vessel']}
-...                     - **Voyage**: {row['Voyage']}
-...                     - **Port**: {row['Port']}
-...                     - **Terminal**: {row['Terminal'] if pd.notna(row['Terminal']) else 'N/A'}
-...                     - **Arrival**: {row['Date of Arrival']}
-...                     - **Departure**: {row['Date of Departure']}
-...                     - **Status**: {row['Status']}
-...                     - **Notes**: {row['Notes'] if pd.notna(row['Notes']) else 'N/A'}
-...                     """)
-...             else:
-...                 st.warning("No matching port call details found.")
-... 
+# Step 1: Select Vessel
+vessels = sorted(df["Vessel"].unique())
+selected_vessel = st.selectbox("Select a vessel:", vessels)
+
+if selected_vessel:
+    # Step 2: Select Voyage
+    voyages = sorted(df[df["Vessel"] == selected_vessel]["Voyage"].unique())
+    selected_voyage = st.selectbox("Select a voyage:", voyages)
+
+    if selected_voyage:
+        # Step 3: Select Port
+        ports = df[(df["Vessel"] == selected_vessel) & (df["Voyage"] == selected_voyage)]["Port"].unique()
+        selected_port = st.selectbox("Select a port:", ports)
+
+        if selected_port:
+            # Display port call details
+            result = df[
+                (df["Vessel"] == selected_vessel) &
+                (df["Voyage"] == selected_voyage) &
+                (df["Port"] == selected_port)
+            ]
+
+            if not result.empty:
+                st.subheader("📋 Port Call Details")
+                for _, row in result.iterrows():
+                    st.markdown(f"""
+                    - **Vessel**: {row['Vessel']}
+                    - **Voyage**: {row['Voyage']}
+                    - **Port**: {row['Port']}
+                    - **Terminal**: {row['Terminal'] or 'N/A'}
+                    - **Arrival**: {row['Date of Arrival']}
+                    - **Departure**: {row['Date of Departure']}
+                    - **Status**: {row['Status']}
+                    - **Notes**: {row['Notes'] or 'N/A'}
+                    """)
+            else:
+                st.warning("No matching port call details found.")
+
