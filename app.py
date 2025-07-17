@@ -12,6 +12,10 @@ data = [
 
 df = pd.DataFrame(data)
 
+# Standardize date formats
+df["Date of Arrival"] = pd.to_datetime(df["Date of Arrival"], errors='coerce')
+df["Date of Departure"] = pd.to_datetime(df["Date of Departure"], errors='coerce')
+
 # Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -26,7 +30,7 @@ st.title("🛳️ LGLDubaiBot")
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).markdown(msg["content"])
 
-# Handle conversation stages
+# Reset function
 def reset_bot():
     st.session_state.stage = "vessel"
     st.session_state.vessel = None
@@ -34,14 +38,16 @@ def reset_bot():
     st.session_state.port = None
     st.session_state.messages = []
 
+# Stage 1: Vessel selection
 if st.session_state.stage == "vessel":
     prompt = "Hi! 👋 Welcome to LGLDubaiBot. Please enter a vessel name:"
     st.chat_message("assistant").markdown(prompt)
     vessel_input = st.chat_input("Type a vessel name...")
     if vessel_input:
         st.session_state.messages.append({"role": "user", "content": vessel_input})
+        vessel_input_clean = vessel_input.strip().lower()
         vessels = df["Vessel"].unique()
-        matches = [v for v in vessels if vessel_input.strip().lower() in v.lower()]
+        matches = [v for v in vessels if vessel_input_clean in v.lower()]
         if matches:
             st.session_state.vessel = matches[0]
             st.session_state.stage = "voyage"
@@ -49,8 +55,10 @@ if st.session_state.stage == "vessel":
         else:
             st.session_state.messages.append({"role": "assistant", "content": "Sorry, I couldn't find that vessel. Please try again."})
 
+# Stage 2: Voyage selection
 elif st.session_state.stage == "voyage":
     voyages = df[df["Vessel"].str.lower() == st.session_state.vessel.lower()]["Voyage"].unique()
+    st.chat_message("assistant").markdown("Please select a voyage:")
     for v in voyages:
         if st.button(f"Voyage {v}"):
             st.session_state.voyage = v
@@ -58,35 +66,45 @@ elif st.session_state.stage == "voyage":
             st.session_state.messages.append({"role": "assistant", "content": f"You selected **Voyage {v}**. Now choose a port:"})
             st.rerun()
 
+# Stage 3: Port selection
 elif st.session_state.stage == "port":
-    ports = df[(df["Vessel"].str.lower() == st.session_state.vessel.lower()) & (df["Voyage"] == st.session_state.voyage)]["Port"].unique()
-    selected_port = None
+    ports = df[
+        (df["Vessel"].str.lower() == st.session_state.vessel.lower()) &
+        (df["Voyage"] == st.session_state.voyage)
+    ]["Port"].unique()
+    st.chat_message("assistant").markdown("Please select a port:")
     for p in ports:
-        if st.button(p):
-            selected_port = p
-            break
-    if selected_port:
-        st.session_state.port = selected_port
-        st.session_state.stage = "details"
-        st.session_state.messages.append({"role": "assistant", "content": f"You selected **{selected_port}**. Here are the port call details:"})
-        st.rerun()
+        if st.button(f"Port: {p}"):
+            st.session_state.port = p
+            st.session_state.stage = "details"
+            st.session_state.messages.append({"role": "assistant", "content": f"You selected **{p}**. Here are the port call details:"})
+            st.rerun()
 
+# Stage 4: Show details
 elif st.session_state.stage == "details":
-    row = df[(df["Vessel"].str.lower() == st.session_state.vessel.lower()) &
-             (df["Voyage"] == st.session_state.voyage) &
-             (df["Port"] == st.session_state.port)].iloc[0]
-    details = f"""
+    filtered = df[
+        (df["Vessel"].str.lower() == st.session_state.vessel.lower()) &
+        (df["Voyage"] == st.session_state.voyage) &
+        (df["Port"] == st.session_state.port)
+    ]
+    if not filtered.empty:
+        row = filtered.iloc[0]
+        arrival = row['Date of Arrival'].strftime("%Y-%m-%d %H:%M") if pd.notnull(row['Date of Arrival']) else "N/A"
+        departure = row['Date of Departure'].strftime("%Y-%m-%d %H:%M") if pd.notnull(row['Date of Departure']) else "N/A"
+        details = f"""
 - **Vessel**: {row['Vessel']}
 - **Voyage**: {row['Voyage']}
 - **Port**: {row['Port']}
 - **Terminal**: {row['Terminal'] or 'N/A'}
-- **Arrival**: {row['Date of Arrival']}
-- **Departure**: {row['Date of Departure']}
+- **Arrival**: {arrival}
+- **Departure**: {departure}
 - **Status**: {row['Status']}
 - **Notes**: {row['Notes'] or 'None'}
 """
-    st.chat_message("assistant").markdown(details)
+        st.chat_message("assistant").markdown(details)
+    else:
+        st.chat_message("assistant").markdown("Sorry, I couldn't find the port call details.")
+
     if st.button("🔁 Ask another question"):
         reset_bot()
         st.rerun()
-
